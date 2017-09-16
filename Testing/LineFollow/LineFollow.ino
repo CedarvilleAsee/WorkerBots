@@ -10,10 +10,12 @@ int amountSeen = 0;
 int state = 0;
 
 int sensors[8] = {0};
-bool isRunning  = false;
+bool isRunning = false;
+bool turning   = false;
 
-const int TURNLEN               = 9;
-char      turnSequence[TURNLEN] = { 'L', 'R', 'R', 'L', 'L', 'R', 'R', 'L', 'L' };
+const int TURNLEN               = 14;
+char      turnSequence[TURNLEN] = { 'L', 'R', 'L', 'L', 'L', 'R', 'L', 'L', 
+                                    'R', 'R', 'R', 'R', 'L', 'L' };
 int       turnPointer           = 0;
 
 void setup() {
@@ -85,11 +87,12 @@ void writeToWheels(int leftSpeed, int rightSpeed) {
   analogWrite(MC_PWMB, leftSpeed); 
 }
 
-void lineFollow(int ts, int strictness){
+bool lineFollow(int ts, int strictness){
   int offset = 3 - firstIndex;
   int rightWheel = ts + offset * strictness;
   int leftWheel = ts - offset * strictness;
   writeToWheels(leftWheel, rightWheel);
+  return amountSeen >= 5;
 }
 
 bool turn(char dir, int ts, int strictness)
@@ -99,12 +102,7 @@ bool turn(char dir, int ts, int strictness)
   } else {
     writeToWheels(ts + strictness, ts - strictness);
   }
-
-  if(amountSeen <= 3) {
-    return true;
-  } else { 
-    return false;
-  }
+  return amountSeen <= 3;
 }
 
 void loop() {
@@ -113,9 +111,9 @@ void loop() {
   extrapolateData();
   count++;
   if(count % 131 == 0){
-    display.sendDigits((char)firstIndex,  (char)amountSeen, state, turnPointer, (char)isRunning);
+    display.sendDigits((char)firstIndex,  (char)amountSeen, state, turnPointer, 
+                       (char)isRunning);
   }
-  
   
   if(isRunning) {
     if(turnPointer == TURNLEN) {
@@ -123,24 +121,15 @@ void loop() {
       turnPointer = 0;
       state = 0;
     }
-    
-    switch(state) {
-      case 0:
-        lineFollow(50, 30);
-      
-        if(amountSeen >= 5) {
-          state++;
-        }
 
-        break;
-
-      case 1:
-        if(turn(turnSequence[turnPointer], 50,  50)) {
-           turnPointer++;
-           state--;
-         }
-         break;
+    // lineFollow()
+    if(!turning) {
+      turning = lineFollow(70, 30);
+    } else if(turn(turnSequence[turnPointer], 50, 50)) {
+      turnPointer++;
+      turning = !turning;
     }
+
   } else {
     writeToWheels(0, 0);
     if(digitalRead(GO_BUTTON) == LOW) {
