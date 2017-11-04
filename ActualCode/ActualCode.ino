@@ -56,10 +56,7 @@ void setup() {
    *        changed because the board is going to tie these to high
    *  - Issues here the right wheel is only spinning backwards
    */
-  digitalWrite(WHEEL_DIR_LB, LOW );
-  digitalWrite(WHEEL_DIR_LF, HIGH);
-  digitalWrite(WHEEL_DIR_RF, HIGH);
-  digitalWrite(WHEEL_DIR_RB, LOW );
+  writeWheelDirection(true);
   digitalWrite(WHEEL_STBY  , HIGH);
 
   Serial.begin(115200);
@@ -80,6 +77,20 @@ void readLine() {
       ++amountSeen;
       firstLineIndex = i;
     }
+  }
+}
+
+void writeWheelDirection(bool dir) {
+  if(dir) {
+    digitalWrite(WHEEL_DIR_LB, LOW );
+    digitalWrite(WHEEL_DIR_LF, HIGH);
+    digitalWrite(WHEEL_DIR_RF, HIGH);
+    digitalWrite(WHEEL_DIR_RB, LOW );
+  } else {
+    digitalWrite(WHEEL_DIR_LB, HIGH);
+    digitalWrite(WHEEL_DIR_LF, LOW);
+    digitalWrite(WHEEL_DIR_RF, LOW);
+    digitalWrite(WHEEL_DIR_RB, HIGH);
   }
 }
 
@@ -108,6 +119,28 @@ bool turn(int ts, int strictness, char direction) {
   }
 }
 
+bool delayState(int ms) {
+  static int milliseconds = -1;
+  if(milliseconds == -1) {
+    milliseconds = millis();
+  }
+  else if(millis() - milliseconds >= ms) {
+    milliseconds = -1;
+    return true;
+  }
+  return false;
+}
+
+bool swoopTurn(char dir, int ts, int d) {
+  if(dir == LEFT) {
+    writeToWheels(0, ts);
+  } else {
+    writeToWheels(ts, 0);
+  }
+
+  return delayState(d);
+}
+
 void loop() {
   readLine();
   switch(state)
@@ -115,7 +148,7 @@ void loop() {
     case 0:
       writeToWheels(0, 0);
       if(digitalRead(BUTTON1) == LOW) {
-        state++;
+        state = 2;
         turnIndex = 0;
       }
       break;
@@ -138,7 +171,7 @@ void loop() {
   
       if(turnIndex == 14)
       {
-        state = 0;
+        state++;
       }
       if(turning) {
         if(turn(125, 125, TURN_SEQUENCE[turnIndex])) {
@@ -150,7 +183,11 @@ void loop() {
       }
       break;
     case 2:
-
+      writeWheelDirection(false);
+      if(swoopTurn(RIGHT, 255, 2000))
+      {
+        state = 0;
+      }
       break;
   }
 
