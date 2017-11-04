@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <Servo.h>
 #include "pinNumbers.h"
 #include "constants.h"
 
@@ -15,6 +16,8 @@ int state      = 0;
 int turnIndex  = 0;
 int iterations = 0;
 
+Servo rightArm;
+Servo leftArm;
 
 void setup() {
 
@@ -39,6 +42,9 @@ void setup() {
   pinMode(WHEEL_STBY, OUTPUT);
 
   pinMode(BUTTON1, INPUT_PULLUP);
+
+  rightArm.attach(R_SCOOP);
+  leftArm.attach(L_SCOOP);
 
   /*
    * The following output configurations set both motors 
@@ -107,23 +113,40 @@ void loop() {
   switch(state)
   {
     case 0:
+      writeToWheels(0, 0);
       if(digitalRead(BUTTON1) == LOW) {
         state++;
         turnIndex = 0;
       }
       break;
     case 1:
+
+      switch(turnIndex) {
+        case 3:
+          rightArm.write(50);
+          break;
+        case 10:
+          leftArm.write(145);
+          break;
+
+        default:
+          rightArm.write(100);
+          leftArm.write(95);
+          break;
+          
+      }
+  
       if(turnIndex == 14)
       {
         state = 0;
       }
       if(turning) {
-        if(turn(150, 100, TURN_SEQUENCE[turnIndex])) {
+        if(turn(125, 125, TURN_SEQUENCE[turnIndex])) {
           turning = false;
           turnIndex++;
         }
       } else {
-        turning = lineFollow(150, 10);
+        turning = lineFollow(150, 20);
       }
       break;
     case 2:
