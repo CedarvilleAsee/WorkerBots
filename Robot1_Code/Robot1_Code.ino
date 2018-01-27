@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Servo.h>
+#include "Wire.h"
 #include "new_pins.h"
 #include "constants.h"
 #include "veml6040.h"
@@ -59,15 +60,17 @@ void setup() {
   digitalWrite(WHEEL_STBY  , HIGH);
 
   // Initialize the color sensor
+  //colorSensor.setConfiguration(VEML6040_SD_ENABLE);
   colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO 
                                    + VEML6040_SD_ENABLE);
-
+  Serial3.begin(115200);
+  Serial.begin(115200);
+  Serial3.println("Starting Up...");
+  Wire.begin();
+  
   if(!colorSensor.begin()) {
     digitalWrite(LEDY, HIGH);
   }
-  Serial.begin(115200);
-  Serial3.begin(115200);
-  Serial3.println("Starting Up...");
 }
 
 /*
@@ -361,10 +364,9 @@ bool isBallPresent() {
   return colorSensor.getWhite() > BALL_TRIGGER;
 }
 
-int getBallData() {
-  if(colorSensor.getWhite() > BALL_TRIGGER) {
-    //return (colorSensor.getBlue() > BLUE_TRIGGER) ? BLUE_BALL : ORANGE_BALL;
-    return colorSensor.getBlue();
+int getPositionFromBall() {
+  if(isBallPresent()) {
+    return (colorSensor.getWhite() > ORANGE_BALL) ? ORANGE_POS : WHITE_POS;
   } else {
     return NO_BALL;
   }
@@ -378,8 +380,9 @@ bool sort(int color) {
 void sortBalls() {
   static bool sorting = false;
   if(sorting) {
-    sorting = sort(getBallData());
+    sorting = sort(ORANGE_POS);
   } else {
+    sorter.write(NO_BALL);
     sorting = isBallPresent();
   }
 }
@@ -423,11 +426,7 @@ void loop() {
     case 4:
       if(cornerState(LEFT)) state = 0;
     default:
-      if(true) {
-        sorter.write(70);
-      } else {
-        sorter.write(125);
-      }
+      sortBalls();
       break;
   }
 
@@ -458,18 +457,18 @@ void loop() {
     Serial3.println(colorSensor.getBlue());*/
 
 
-  float b = colorSensor.getBlue();
-  float w = colorSensor.getWhite();
-  float g = colorSensor.getGreen();
-  float r = colorSensor.getRed();
-  Serial3.print("Blue: ");
-  Serial3.print(b / w);
-  Serial3.print(b);
-  Serial3.print(" Red: ");
-  Serial3.println(r / w);
-  Serial3.print(r);
-  Serial3.print(" Green: ");
-  Serial3.println(g / w);
-  Serial3.print(g);
+    int b = colorSensor.getBlue();
+    int w = colorSensor.getWhite();
+    int g = colorSensor.getGreen();
+    int r = colorSensor.getRed();
+    Serial3.print("Blue: ");
+    Serial3.println(b);
+    Serial3.print("Red: ");
+    Serial3.println(r);
+    Serial3.print("Green: ");
+    Serial3.println(g);
+    Serial3.print("White: ");
+    Serial3.println(w);
+
   }
 }

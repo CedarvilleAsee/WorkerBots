@@ -19,17 +19,19 @@ const char LEFT = 'l';
 const char RIGHT = 'r';
 
 // Dasch constants
-const int BLUETOOTH_LIMITER = 4000;
+const int  BLUETOOTH_LIMITER = 4000;
 const bool WHEEL_FORWARDS   = true;
 const bool WHEEL_BACKWARDS  = false;
 const bool FORWARDS         = true;
 const bool BACKWARDS        = false;
 
+const int ORANGE_POS  = 50;
+const int WHITE_POS   = 70;
 const int BLUE_BALL   = 70;
-const int ORANGE_BALL = 125;
-const int NO_BALL     = 180;
+const int ORANGE_BALL = 2100;
+const int NO_BALL     = 125;
 
-const int BALL_TRIGGER = 6000;
+const int BALL_TRIGGER = 1200;
 const int BLUE_TRIGGER = 3000;
 
 // Turn sequence
