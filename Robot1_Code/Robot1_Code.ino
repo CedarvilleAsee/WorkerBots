@@ -1,3 +1,4 @@
+#include <Wire.h>
 #include <Arduino.h>
 #include <Servo.h>
 #include "new_pins.h"
@@ -65,6 +66,7 @@ void setup() {
   if(!colorSensor.begin()) {
     digitalWrite(LEDY, HIGH);
   }
+	Wire.begin();
   Serial.begin(115200);
   Serial3.begin(115200);
   Serial3.println("Starting Up...");
@@ -249,7 +251,7 @@ bool doTurnSequence(const char sequence[], int index) {
   return false;
 }
 
-void SortBall() {
+void sortBall() {
   if(isBallPresent()) {
     sorter.write(ORANGE); //Change this
   } else {
@@ -281,7 +283,6 @@ bool followTrackState() {
   }
 
   if(doTurnSequence(TURN_SEQUENCE, state)) {
-    SortBall();
     state++;
   }
   return isFinished;
@@ -370,7 +371,7 @@ bool secondCornerState() {
 
 */
 bool isBallPresent() {
-  return colorSensor.getWhite() > BALL_TRIGGER;
+  return colorSensor.getWhite() > 1200;
 }
 
 int getBallData() {
@@ -390,8 +391,9 @@ bool sort(int color) {
 void sortBalls() {
   static bool sorting = false;
   if(sorting) {
-    sorting = sort(getBallData());
+    sorting = sort(ORANGE_BALL);
   } else {
+		sorter.write(70); //wat
     sorting = isBallPresent();
   }
 }
@@ -417,7 +419,6 @@ void testWheel(char wheel, int ts)
 void loop() {
 	// "This probably needs to move (because its ape-ish)"
 	//    - Daschel Fortner (probably)
-	sortBalls();
   static int state = -1;
   static int sorterTester = 0;
   readLine();
@@ -438,15 +439,14 @@ void loop() {
     case 4:
       if(cornerState(LEFT)) state = 0;
     default:
-      if(true) {
-        sorter.write(70);
-      } else {
-        sorter.write(125);
-      }
+			sorter.write(125);
+			//for(int i = 50; i < 151; i+=10) {
+			//	delay(500);
+			//	sorter.write(i);
+			//}
+			//sortBalls();
       break;
   }
-
-  SortBall();
 
   iterations++;
   if(iterations == BLUETOOTH_LIMITER)
@@ -480,16 +480,13 @@ void loop() {
   float g = colorSensor.getGreen();
   float r = colorSensor.getRed();
   Serial3.print("Blue: ");
-  Serial3.print(b / w);
   Serial3.print(b);
   Serial3.print(" Red: ");
-  Serial3.println(r / w);
   Serial3.print(r);
   Serial3.print(" Green: ");
-  Serial3.print(g / w);
   Serial3.print(g);
 
-  Serial.print("isBallPresent = ");
-  Serial.println(isBallPresent());
+  Serial3.print("isBallPresent = ");
+  Serial3.println(isBallPresent());
   }
 }

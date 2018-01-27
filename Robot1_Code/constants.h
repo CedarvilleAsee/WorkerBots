@@ -26,8 +26,8 @@ const bool FORWARDS         = true;
 const bool BACKWARDS        = false;
 
 const int BLUE_BALL   = 70;
-const int ORANGE_BALL = 125;
-const int NO_BALL     = 180;
+const int ORANGE_BALL = 50;
+const int NO_BALL     = 125;
 
 const int BALL_TRIGGER = 6000;
 const int BLUE_TRIGGER = 3000;
