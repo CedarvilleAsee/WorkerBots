@@ -238,6 +238,7 @@ bool doTurnSequence(const char sequence[], int index) {
   static bool turning = false;
   otherPrintVar = turning;
   if(turning) {
+    
     if(turn(150, sequence[index])) {
       turning = false;
       return true;
@@ -246,6 +247,15 @@ bool doTurnSequence(const char sequence[], int index) {
     turning = lineFollow(100, 26);
   }
   return false;
+}
+
+void SortBall() {
+  if(isBallPresent()) {
+    sorter.write(ORANGE); //Change this
+  } else {
+    sorter.write(PICK_UP);
+  }
+
 }
 
 bool followTrackState() {
@@ -270,8 +280,10 @@ bool followTrackState() {
       break;
   }
 
-  if(doTurnSequence(TURN_SEQUENCE, state)) 
+  if(doTurnSequence(TURN_SEQUENCE, state)) {
+    SortBall();
     state++;
+  }
   return isFinished;
 }
 
@@ -431,6 +443,8 @@ void loop() {
       break;
   }
 
+  SortBall();
+
   iterations++;
   if(iterations == BLUETOOTH_LIMITER)
   {
@@ -469,7 +483,10 @@ void loop() {
   Serial3.println(r / w);
   Serial3.print(r);
   Serial3.print(" Green: ");
-  Serial3.println(g / w);
+  Serial3.print(g / w);
   Serial3.print(g);
+
+  Serial.print("isBallPresent = ");
+  Serial.println(isBallPresent());
   }
 }
