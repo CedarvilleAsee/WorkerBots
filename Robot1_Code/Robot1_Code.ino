@@ -415,6 +415,9 @@ void testWheel(char wheel, int ts)
 }
 
 void loop() {
+	// "This probably needs to move (because its ape-ish)"
+	//    - Daschel Fortner (probably)
+	sortBalls();
   static int state = -1;
   static int sorterTester = 0;
   readLine();
