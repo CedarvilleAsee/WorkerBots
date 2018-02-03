@@ -143,11 +143,9 @@ int absVal(int val) {
   under 0.
 */
 void writeToWheels(int ls, int rs) {
-  absVal(ls);
-  absVal(rs);
-  writeWheelDirection(ls > 0, rs > 0); // Clean? Maybe more confusing?
-  analogWrite(WHEEL_SPEED_L, ls);
-  analogWrite(WHEEL_SPEED_R, rs);
+  old_writeWheelDirection(ls > 0, rs > 0); // Clean? Maybe more confusing?
+  analogWrite(WHEEL_SPEED_L, absVal(ls));
+  analogWrite(WHEEL_SPEED_R, absVal(rs));
 }
 
 /*
@@ -377,13 +375,13 @@ bool sort(int color) {
   return delayState(1000);
 }
 
-void sortBalls() {
+void sortBalls(bool turning) {
   static bool sorting = false;
   if(sorting) {
     sorting = sort(ORANGE_POS);
   } else {
     sorter.write(NO_BALL);
-    sorting = isBallPresent();
+    sorting = turning;
   }
 }
 
@@ -406,7 +404,7 @@ void testWheel(char wheel, int ts)
 }
 
 void loop() {
-  static int state = -1;
+  static int state = 0;
   static int sorterTester = 0;
   readLine();
   switch(state)
