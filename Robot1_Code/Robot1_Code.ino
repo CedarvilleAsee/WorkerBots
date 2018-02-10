@@ -10,12 +10,9 @@ int firstLineIndex = -1;
 int lastLineIndex  = -1;
 int targetIndex    =  3;
 int amountSeen     = 0;
-bool running       = false;
-bool on            = false;
 int printVar = 0;
 bool otherPrintVar = false; // Consider making "printVar" an array
 
-int subState   = 0;
 int iterations = 0;
 
 Servo rightArm;
@@ -23,7 +20,7 @@ Servo leftArm;
 Servo sorter;
 
 // Color Sensor object
-VEML6040 colorSensor;
+//VEML6040 colorSensor;
 
 void setup() {
 
@@ -61,16 +58,17 @@ void setup() {
 
   // Initialize the color sensor
   //colorSensor.setConfiguration(VEML6040_SD_ENABLE);
-  colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO 
-                                   + VEML6040_SD_ENABLE);
+  //colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO 
+  //                                 + VEML6040_SD_ENABLE);
   Serial3.begin(115200);
   Serial.begin(115200);
   Serial3.println("Starting Up...");
-  Wire.begin();
-  
+  //Wire.begin();
+  /*
   if(!colorSensor.begin()) {
     digitalWrite(LEDY, HIGH);
   }
+  */
 }
 
 /*
@@ -98,6 +96,15 @@ void readLine() {
       firstLineIndex = i;
     }
   }
+}
+
+bool atMiddle() {
+  bool exclusivityBool = true;
+  for(int i = 0; i < 3; ++i) {
+    exclusivityBool &= (sensors[i] == LOW && sensors[7 - i] == LOW);
+  }
+  return (sensors[TARGET_INDEX] == HIGH && sensors[TARGET_INDEX + 1] == HIGH 
+          && exclusivityBool);
 }
 
 /*
@@ -144,6 +151,16 @@ int absVal(int val) {
 */
 void writeToWheels(int ls, int rs) {
   old_writeWheelDirection(ls > 0, rs > 0); // Clean? Maybe more confusing?
+  if(rs > 0) {
+    digitalWrite(LEDG, HIGH);
+  } else {
+    digitalWrite(LEDG, LOW);
+  }
+  if(ls > 0) {
+    digitalWrite(LEDY, HIGH);
+  } else {
+    digitalWrite(LEDY, LOW);
+  }
   analogWrite(WHEEL_SPEED_L, absVal(ls));
   analogWrite(WHEEL_SPEED_R, absVal(rs));
 }
@@ -165,14 +182,18 @@ bool lineFollow(int ts, int strictness) {
   Turns based on direction. Use the constants LEFT and RIGHT for this function.
   Returns true if the robot is back on the line.
 */
-bool turn(int speed, char direction) {
-  if(direction == LEFT){
-    writeToWheels(-speed, speed);
+bool turn(int spd, char dir) {
+  int targetIndex = TARGET_INDEX;
+  if(dir == LEFT){
+    writeToWheels(-spd, spd);
+    targetIndex += 3;
   }else{
-    writeToWheels(speed, -speed);
+    targetIndex -= 3;
+    writeToWheels(spd, -spd);
   }
   // Return true if the robot is back centered on the line
-  return firstLineIndex >= TARGET_INDEX  && amountSeen < 3;
+  return atMiddle();
+  //return firstLineIndex >= targetIndex  && amountSeen < 3;
 }
 
 /*
@@ -357,7 +378,6 @@ bool secondCornerState() {
 
   The following functions all relate to color sorting.
 
-*/
 bool isBallPresent() {
   return colorSensor.getWhite() > BALL_TRIGGER;
 }
@@ -384,6 +404,7 @@ void sortBalls(bool turning) {
     sorting = turning;
   }
 }
+*/
 
 /*
                               TEST FUNCTIONS:
@@ -416,7 +437,7 @@ void loop() {
       if(followTrackState())  state++; 
       break;
     case 2:
-      if(cornerState(RIGHT))  state = 0;
+      if(cornerState(RIGHT))  state++;
       break;
     case 3:
       if(goToNextCornerState()) state++;
@@ -424,7 +445,6 @@ void loop() {
     case 4:
       if(cornerState(LEFT)) state = 0;
     default:
-      sortBalls();
       break;
   }
 
@@ -432,29 +452,30 @@ void loop() {
   if(iterations == BLUETOOTH_LIMITER)
   {
     iterations = 0;
-    //Serial3.print("[ ");
-    //for(int i = 0; i < 8; i++)
-    //{
-    //  Serial3.print(sensors[i]);
-    //  Serial3.print(" ");
-    //}
-    //Serial3.println("]");
-    //Serial3.print("[ ");
-    //Serial3.print(firstLineIndex);
-    //Serial3.print(", ");
-    //Serial3.print(amountSeen);
-    //Serial3.print(" ]");
-    //Serial3.print(" - ");
-    //Serial3.print(printVar);
-    //Serial3.print(", ");
-    //Serial3.println(otherPrintVar);
+    Serial3.print("[ ");
+    for(int i = 0; i < 8; i++)
+    {
+      Serial3.print(sensors[i]);
+      Serial3.print(" ");
+    }
+
+    Serial3.println("]");
+    Serial3.print("State: ");
+    Serial3.println(state);
+    Serial3.print("First Line index: ");
+    Serial3.println(firstLineIndex);
+    Serial3.print("Last Line index: ");
+    Serial3.println(lastLineIndex);
+    Serial3.print("Amount Seen: ");
+    Serial3.println(amountSeen);
+    Serial3.println("----------------------------------------");
 
     /*Serial3.print("Get Data = ");
     Serial3.print(getBallData());
     Serial3.print(" White val: ");
     Serial3.println(colorSensor.getBlue());*/
 
-
+    /*
     int b = colorSensor.getBlue();
     int w = colorSensor.getWhite();
     int g = colorSensor.getGreen();
@@ -467,6 +488,6 @@ void loop() {
     Serial3.println(g);
     Serial3.print("White: ");
     Serial3.println(w);
-
+    */
   }
 }
