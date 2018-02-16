@@ -48,6 +48,8 @@ void setup() {
 
   leftArm.attach(L_TUBE);
   sorter.attach(SORTER);
+  sorter.write(PICK_UP);
+  leftArm.write(100);
 
   // Wall Sensors
   //pinMode(L_BARREL_SENSOR, INPUT);
@@ -105,6 +107,24 @@ bool atMiddle() {
   }
   return (sensors[TARGET_INDEX] == HIGH && sensors[TARGET_INDEX + 1] == HIGH 
           && exclusivityBool);
+}
+
+bool twoConsecutive() {
+  int lowCount = 0;
+  bool consecutive = false;
+  for(int i = 0; i < 7; i++) {
+    if(sensors[i] == HIGH && sensors[i + 1] == HIGH) {
+      consecutive = true;
+    }
+
+    if(sensors[i] == LOW) {
+      lowCount++;
+    }
+  }
+  if(sensors[7] == LOW) {
+    lowCount++;
+  }
+  return lowCount == 6 && consecutive;
 }
 
 /*
@@ -172,7 +192,7 @@ bool lineFollow(int ts, int strictness) {
   int offset = firstLineIndex - TARGET_INDEX;
   int rightSpeed = ts - offset * strictness;
   int leftSpeed = ts + offset * strictness;
-  writeToWheels(leftSpeed, rightSpeed);
+  writeToWheels(leftSpeed % 255, rightSpeed % 255);
 
   // Return true if the sensors can see a fork
   return amountSeen > TURN_AMOUNT;
@@ -192,7 +212,8 @@ bool turn(int spd, char dir) {
     writeToWheels(spd, -spd);
   }
   // Return true if the robot is back centered on the line
-  return atMiddle();
+  return twoConsecutive();
+  //return atMiddle();
   //return firstLineIndex >= targetIndex  && amountSeen < 3;
 }
 
@@ -215,7 +236,6 @@ bool delayState(int ms) {
   Switches the wheels backwards and then does a big, swooping turn. 
 */ 
 bool swoopTurn(char dir, int ts, int d) {
-  writeWheelDirection(BACKWARDS, BACKWARDS);
   if(dir == LEFT) {
     writeToWheels(0, ts);
   } else {
@@ -258,21 +278,21 @@ bool waitState() {
 
 bool doTurnSequence(const char sequence[], int index) {
   static bool turning = false;
+  sortBalls(turning);
   otherPrintVar = turning;
   if(turning) {
-    if(turn(150, sequence[index])) {
+    if(turn(100, sequence[index])) {
       turning = false;
       return true;
     }
   } else {
-    turning = lineFollow(100, 26);
+    turning = lineFollow(100, 50);
   }
   return false;
 }
 
 bool followTrackState() {
   static int state = 0;
-
   printVar = state;
   bool isFinished = false;
   
@@ -280,6 +300,7 @@ bool followTrackState() {
     case 3:
       rightArm.write(50);
       break;
+    case 9:
     case 10:
       leftArm.write(145);
       break;
@@ -288,7 +309,7 @@ bool followTrackState() {
       break;
     default:
       rightArm.write(100);
-      leftArm.write(95);
+      leftArm.write(100);
       break;
   }
 
@@ -303,7 +324,7 @@ bool cornerState(char dir) {
   switch(state) 
   {
     case 0:
-      if(swoopTurn(dir, 255, 2150))  state++; 
+      if(swoopTurn(dir, -255, 2150))  state = -1; 
       break;
     case 1:
       if(backToCornerState(100, 10)) { 
@@ -326,6 +347,9 @@ bool cornerState(char dir) {
         state = 0;
         return true;
       }
+      break;
+    default:
+      writeToWheels(0, 0);
       break;
   }
   return false;
@@ -389,22 +413,22 @@ int getPositionFromBall() {
     return NO_BALL;
   }
 }
+*/
 
 bool sort(int color) {
   sorter.write(color);
-  return delayState(1000);
+  return delayState(250);
 }
 
 void sortBalls(bool turning) {
   static bool sorting = false;
   if(sorting) {
-    sorting = sort(ORANGE_POS);
+    sorting = !sort(ORANGE);
   } else {
-    sorter.write(NO_BALL);
+    sorter.write(PICK_UP);
     sorting = turning;
   }
 }
-*/
 
 /*
                               TEST FUNCTIONS:
@@ -445,6 +469,11 @@ void loop() {
     case 4:
       if(cornerState(LEFT)) state = 0;
     default:
+      for(int i = 50; i < 150; i += 5) {
+        sorter.write(i);
+        delay(2000);
+        printVar = i;
+      }
       break;
   }
 
@@ -468,6 +497,8 @@ void loop() {
     Serial3.println(lastLineIndex);
     Serial3.print("Amount Seen: ");
     Serial3.println(amountSeen);
+    Serial3.print("Print Var: ");
+    Serial3.println(printVar);
     Serial3.println("----------------------------------------");
 
     /*Serial3.print("Get Data = ");

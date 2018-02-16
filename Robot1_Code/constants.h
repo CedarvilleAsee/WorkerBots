@@ -4,7 +4,7 @@
 
 //sorter constants
 const int ORANGE = 30;
-const int PICK_UP = 150;
+const int PICK_UP = 103;
 const int WHITE = 85;
 
 //speed constants
