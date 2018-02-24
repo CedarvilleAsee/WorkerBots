@@ -34,6 +34,9 @@ const int NO_BALL     = 125;
 const int BALL_TRIGGER = 1200;
 const int BLUE_TRIGGER = 3000;
 
+const int DONT_DUMP_POS = 52;
+const int DUMP_POS      = 142;
+
 // Turn sequence
 const char TURN_SEQUENCE[] = {
   LEFT, RIGHT, LEFT, LEFT, LEFT, LEFT, RIGHT, RIGHT, LEFT, RIGHT, RIGHT, RIGHT, LEFT, LEFT

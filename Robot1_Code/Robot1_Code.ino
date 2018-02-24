@@ -54,7 +54,7 @@ void setup() {
   sorter.write(PICK_UP);
   leftArm.write(100);
   leftDump.attach(L_DUMP);
-  leftDump.write(52);//initalize servo at perfect position IMH.
+  leftDump.write(DONT_DUMP_POS);//initalize servo at perfect position IMH.
 
   // Wall Sensors
   //pinMode(L_BARREL_SENSOR, INPUT);
@@ -176,7 +176,7 @@ int absVal(int val) {
   under 0.
 */
 void writeToWheels(int ls, int rs) {
-  old_writeWheelDirection(ls > 0, rs > 0); // Clean? Maybe more confusing?
+  writeWheelDirection(ls > 0, rs > 0); // Clean? Maybe more confusing?
   if(rs > 0) {
     digitalWrite(LEDG, HIGH);
   } else {
@@ -344,9 +344,9 @@ bool cornerState(char dir) {
     case 2:
       writeToWheels(0, 0);
       // Add the drop off
-      leftDump.write(142);//added 90 to initial position
+      leftDump.write(DUMP_POS);//added 90 to initial position
       if(delayState(2000) && dir == RIGHT) {
-        state=-1; 
+        state++; 
       }
       else if(dir == LEFT) {
         state = 0;
@@ -354,6 +354,8 @@ bool cornerState(char dir) {
       }
       break;
     case 3:
+      leftDump.write(DONT_DUMP_POS);
+      
       if(findLine(150)) {
         state = 0;
         return true;
@@ -369,14 +371,11 @@ bool cornerState(char dir) {
 bool goToNextCornerState() {
   static int state = 0; 
   printVar = state;
-  bool isFinished = false;
 
-  if(state == 4) {
-    isFinished = amountSeen > TURN_AMOUNT;
-  }
-  if(doTurnSequence(SECOND_TURN_SEQUENCE, state)) state++;
+  if(doTurnSequence(SECOND_TURN_SEQUENCE, state)) 
+    state++;
 
-  return isFinished;
+  return state == 4 && amountSeen > TURN_AMOUNT;
 }
 
 bool secondCornerState() {
@@ -510,18 +509,10 @@ void loop() {
     Serial3.println("]");
     Serial3.print("State: ");
     Serial3.println(state);
-    Serial3.print("First Line index: ");
-    Serial3.println(firstLineIndex);
-    Serial3.print("Last Line index: ");
-    Serial3.println(lastLineIndex);
-    Serial3.print("Amount Seen: ");
-    Serial3.println(amountSeen);
-    Serial3.print("Print Var: ");
+    Serial3.print("Substate: ");
     Serial3.println(printVar);
     /*Serial3.println("Backup left: ");
     Serial3.println(readBackLeft());*/
-    Serial3.println("Backup right: ");
-    Serial3.println(readBackRight());
     Serial3.println("----------------------------------------");
     /*Serial3.print("Get Data = ");
     Serial3.print(getBallData());
