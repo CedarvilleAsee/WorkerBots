@@ -18,6 +18,7 @@ int iterations = 0;
 Servo rightArm;
 Servo leftArm;
 Servo sorter;
+Servo leftDump;
 
 // Color Sensor object
 //VEML6040 colorSensor;
@@ -45,11 +46,15 @@ void setup() {
   pinMode(WHEEL_STBY, OUTPUT);
 
   pinMode(BUTTON1, INPUT_PULLUP);
+  pinMode(BACK_LEFT_SENSOR, OUTPUT);
+  pinMode(L_DUMP,INPUT);
 
   leftArm.attach(L_TUBE);
   sorter.attach(SORTER);
   sorter.write(PICK_UP);
   leftArm.write(100);
+  leftDump.attach(L_DUMP);
+  leftDump.write(52);//initalize servo at perfect position IMH.
 
   // Wall Sensors
   //pinMode(L_BARREL_SENSOR, INPUT);
@@ -62,6 +67,7 @@ void setup() {
   //colorSensor.setConfiguration(VEML6040_SD_ENABLE);
   //colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO 
   //                                 + VEML6040_SD_ENABLE);
+  // Talk to testing to get the correct configuration
   Serial3.begin(115200);
   Serial.begin(115200);
   Serial3.println("Starting Up...");
@@ -237,6 +243,7 @@ bool delayState(int ms) {
 */ 
 bool swoopTurn(char dir, int ts, int d) {
   if(dir == LEFT) {
+    //lift up arms.
     writeToWheels(0, ts);
   } else {
     writeToWheels(ts, 0);
@@ -252,14 +259,15 @@ bool backToCornerState(int ts, int strictness)
   
   
   // Get info from wall sensor and update lSens and rSens
-  //lSens = analogRead(L_BARREL_SENSOR);
-  //rSens = analogRead(BACK_SENSOR);
+  lSens = readBackLeft();
+  rSens = readBackRight();
   
-  int offset = (lSens - rSens) / strictness;
-  //offset = 10;
-  writeToWheels(ts + offset, ts - offset);
+  /*int offset = (lSens - rSens) / strictness;
+  //offset = 10;*/
+  writeToWheels(-SLOW_SPEED, -SLOW_SPEED);
 
-  return lSens <= 300 && rSens <= 300; // This is because we don't know what the sensors will return (they aren't always the same)
+
+  return rSens <= 65; // This is because we don't know what the sensors will return (they aren't always the same)
   // FIXME The return needs to be tested
   
   //return delayState(d);
@@ -324,18 +332,21 @@ bool cornerState(char dir) {
   switch(state) 
   {
     case 0:
-      if(swoopTurn(dir, -255, 2150))  state = -1; 
+      if(swoopTurn(dir, -255, 2150))  state ++; 
       break;
     case 1:
       if(backToCornerState(100, 10)) { 
         state++;
-        writeWheelDirection(WHEEL_FORWARDS, WHEEL_FORWARDS);
+        
+        //writeWheelDirection(WHEEL_FORWARDS, WHEEL_FORWARDS);
       }
       break;
     case 2:
       writeToWheels(0, 0);
+      // Add the drop off
+      leftDump.write(142);//added 90 to initial position
       if(delayState(2000) && dir == RIGHT) {
-        state++; 
+        state=-1; 
       }
       else if(dir == LEFT) {
         state = 0;
@@ -379,7 +390,7 @@ bool secondCornerState() {
       break;
     case 1:
       if(backToCornerState(100, 10)) { 
-        state++;
+        state=-1;
         writeWheelDirection(WHEEL_FORWARDS, WHEEL_FORWARDS);
       }
       break;
@@ -404,6 +415,8 @@ bool secondCornerState() {
 
 bool isBallPresent() {
   return colorSensor.getWhite() > BALL_TRIGGER;
+  // Talk to testing to figure out what signifies where there's a ball
+  
 }
 
 int getPositionFromBall() {
@@ -423,10 +436,10 @@ bool sort(int color) {
 void sortBalls(bool turning) {
   static bool sorting = false;
   if(sorting) {
-    sorting = !sort(ORANGE);
+    sorting = !sort(ORANGE); // this is the same
   } else {
     sorter.write(PICK_UP);
-    sorting = turning;
+    sorting = turning; // sorting = isBallPresent();
   }
 }
 
@@ -446,6 +459,12 @@ void testWheel(char wheel, int ts)
     writeToWheels(ts, 0);
   else
     writeToWheels(0, ts);
+}
+int readBackRight(){//gets data val from right infraread sensor IMH
+ return analogRead(BACK_RIGHT_SENSOR); 
+}
+int readBackLeft(){//gets data val from left infraread sensor IMH
+  return analogRead(BACK_LEFT_SENSOR);
 }
 
 void loop() {
@@ -499,8 +518,11 @@ void loop() {
     Serial3.println(amountSeen);
     Serial3.print("Print Var: ");
     Serial3.println(printVar);
+    /*Serial3.println("Backup left: ");
+    Serial3.println(readBackLeft());*/
+    Serial3.println("Backup right: ");
+    Serial3.println(readBackRight());
     Serial3.println("----------------------------------------");
-
     /*Serial3.print("Get Data = ");
     Serial3.print(getBallData());
     Serial3.print(" White val: ");
