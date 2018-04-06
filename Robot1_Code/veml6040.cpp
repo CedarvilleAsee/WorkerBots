@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include "Wire.h"
 #include "VEML6040.h"
-
+#include <math.h>
 
 VEML6040::VEML6040(void) {
   
@@ -35,6 +35,7 @@ VEML6040::VEML6040(void) {
 bool VEML6040::begin(void) {
   bool sensorExists;
   Wire.begin();
+  Wire.setClock(100000);
   Wire.beginTransmission(VEML6040_I2C_ADDRESS);
   if (Wire.endTransmission() == 0) {
     sensorExists = true;
@@ -54,10 +55,10 @@ void VEML6040::setConfiguration(uint8_t configuration) {
 uint16_t VEML6040::read(uint8_t commandCode) {
   uint16_t data = 0; 
   
-  Wire.beginTransmission(VEML6040_I2C_ADDRESS);
-  Wire.write(commandCode);
-  Wire.endTransmission(false);
-  Wire.requestFrom(VEML6040_I2C_ADDRESS,2);
+  //Wire.beginTransmission(VEML6040_I2C_ADDRESS);
+  //Wire.write(commandCode);
+  //Wire.endTransmission(false);
+  Wire.requestFrom(VEML6040_I2C_ADDRESS,2,commandCode,1,true);
   while(Wire.available()) 
   {
     data = Wire.read(); 

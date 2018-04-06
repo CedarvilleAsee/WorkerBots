@@ -24,64 +24,103 @@ SOFTWARE.
 
 */
 
-#ifndef VEML6040_H
-#define VEML6040_H
+#include "Wire.h"
+#include "VEML6040.h"
+#include <math.h>
 
-// VEML6040 I2C ADDRESS
+VEML6040::VEML6040(void) {
+  
+}
 
-#define VEML6040_I2C_ADDRESS   0x10
+bool VEML6040::begin(void) {
+  bool sensorExists;
+  Wire.begin();
+  Wire.setClock(100000);
+  Wire.beginTransmission(VEML6040_I2C_ADDRESS);
+  if (Wire.endTransmission() == 0) {
+    sensorExists = true;
+  }
+  return sensorExists;
+}
 
-// REGISTER CONF (00H) SETTINGS
+void VEML6040::setConfiguration(uint8_t configuration) {
+  Wire.beginTransmission(VEML6040_I2C_ADDRESS);  
+  Wire.write(COMMAND_CODE_CONF); 
+  Wire.write(configuration); 
+  Wire.write(0);
+  Wire.endTransmission(); 
+  lastConfiguration = configuration;
+}
 
-#define VEML6040_IT_40MS       0x00
-#define VEML6040_IT_80MS       0x10
-#define VEML6040_IT_160MS      0x20
-#define VEML6040_IT_320MS      0x30
-#define VEML6040_IT_640MS      0x40
-#define VEML6040_IT_1280MS     0x50
+uint16_t VEML6040::read(uint8_t commandCode) {
+  uint16_t data = 0; 
+  
+  //Wire.beginTransmission(VEML6040_I2C_ADDRESS);
+  //Wire.write(commandCode);
+  //Wire.endTransmission(false);
+  Wire.requestFrom(VEML6040_I2C_ADDRESS,2,commandCode,1,true);
+  while(Wire.available()) 
+  {
+    data = Wire.read(); 
+    data |= Wire.read() << 8;
+  }
+  
+  return data; 
+}
 
-#define VEML6040_TRIG_DISABLE  0x00
-#define VEML6040_TRIG_ENABLE   0x04
+uint16_t VEML6040::getRed(void) {
+  return(read(COMMAND_CODE_RED));
+}
 
-#define VEML6040_AF_AUTO       0x00
-#define VEML6040_AF_FORCE      0x02
+uint16_t VEML6040::getGreen(void) {
+  return(read(COMMAND_CODE_GREEN));
+}
 
-#define VEML6040_SD_ENABLE     0x00
-#define VEML6040_SD_DISABLE    0x01 
+uint16_t VEML6040::getBlue(void) {
+  return(read(COMMAND_CODE_BLUE));
+}
 
-// COMMAND CODES
+uint16_t VEML6040::getWhite(void) {
+  return(read(COMMAND_CODE_WHITE));
+}
 
-#define COMMAND_CODE_CONF      0x00
-#define COMMAND_CODE_RED       0x08
-#define COMMAND_CODE_GREEN     0x09
-#define COMMAND_CODE_BLUE      0x0A
-#define COMMAND_CODE_WHITE     0x0B
+float VEML6040::getAmbientLight(void) {
+  uint16_t sensorValue; 
+  float ambientLightInLux;
+  
+  sensorValue = read(COMMAND_CODE_GREEN);
+  
+  switch(lastConfiguration & 0x70) {
+  
+    case VEML6040_IT_40MS:    ambientLightInLux = sensorValue * VEML6040_GSENS_40MS;
+                              break;
+    case VEML6040_IT_80MS:    ambientLightInLux = sensorValue * VEML6040_GSENS_80MS;
+                              break;
+    case VEML6040_IT_160MS:   ambientLightInLux = sensorValue * VEML6040_GSENS_160MS;
+                              break;
+    case VEML6040_IT_320MS:   ambientLightInLux = sensorValue * VEML6040_GSENS_320MS;
+                              break;
+    case VEML6040_IT_640MS:   ambientLightInLux = sensorValue * VEML6040_GSENS_640MS;
+                              break; 
+    case VEML6040_IT_1280MS:  ambientLightInLux = sensorValue * VEML6040_GSENS_1280MS; 
+                              break;   
+    default:                  ambientLightInLux = -1;
+                              break;                             
+  } 
+  return ambientLightInLux;
+}
 
-// G SENSITIVITY
-
-#define VEML6040_GSENS_40MS       0.25168
-#define VEML6040_GSENS_80MS       0.12584
-#define VEML6040_GSENS_160MS      0.06292
-#define VEML6040_GSENS_320MS      0.03146
-#define VEML6040_GSENS_640MS      0.01573
-#define VEML6040_GSENS_1280MS     0.007865
-
-class VEML6040 {
-	
-  private: 
-    uint16_t read(uint8_t);
-    uint8_t lastConfiguration;
-	
-  public:
-    VEML6040(void);
-    bool begin(void);
-    void setConfiguration(uint8_t);
-    uint16_t getRed(void);
-    uint16_t getGreen(void);
-    uint16_t getBlue(void);
-    uint16_t getWhite(void);
-    uint16_t getCCT(float offset = 0.5);  
-    float getAmbientLight(void);
-};
-
-#endif
+uint16_t VEML6040::getCCT(float offset) {
+  uint16_t red,blue,green;
+  float cct,ccti;
+  
+  red = read(COMMAND_CODE_RED);
+  green = read(COMMAND_CODE_GREEN);
+  blue = read(COMMAND_CODE_BLUE);
+  
+  ccti = ((float)red-(float)blue) / (float)green;
+  ccti = ccti + offset; 
+  cct = 4278.6 * pow(ccti,-1.2455);
+  
+  return((uint16_t)cct);
+}
