@@ -65,7 +65,7 @@ void setup() {
 
   // Initialize the color sensor
   //colorSensor.setConfiguration(VEML6040_SD_ENABLE);
-  //colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO 
+  //colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO
   //                                 + VEML6040_SD_ENABLE);
   // Talk to testing to get the correct configuration
   Serial3.begin(115200);
@@ -82,9 +82,9 @@ void setup() {
 /*
                             MANUEVERING FUNCTIONS:
 
-  The following functions relate to maneuvering the robot around the track, and 
+  The following functions relate to maneuvering the robot around the track, and
   resulting states for accomplishing that task.
-  
+
 */
 
 /*
@@ -111,7 +111,7 @@ bool atMiddle() {
   for(int i = 0; i < 3; ++i) {
     exclusivityBool &= (sensors[i] == LOW && sensors[7 - i] == LOW);
   }
-  return (sensors[TARGET_INDEX] == HIGH && sensors[TARGET_INDEX + 1] == HIGH 
+  return (sensors[TARGET_INDEX] == HIGH && sensors[TARGET_INDEX + 1] == HIGH
           && exclusivityBool);
 }
 
@@ -136,7 +136,7 @@ bool twoConsecutive() {
 /*
   New and improved wheel direction switch-er-oo. Use the constants FORWARDS and
   and BACKWARDS for this function. You could use true and false, but that would
-  be very ape-ish of you. 
+  be very ape-ish of you.
 */
 void writeWheelDirection(bool ldir, bool rdir) {
   digitalWrite(WHEEL_DIR_LF, ldir);
@@ -172,7 +172,7 @@ int absVal(int val) {
 
 /*
   Write a direction to the wheels. If the wheel speed passed is negative, then
-  the direction of that wheel is switched. Don't pass something over 255 or 
+  the direction of that wheel is switched. Don't pass something over 255 or
   under 0.
 */
 void writeToWheels(int ls, int rs) {
@@ -209,12 +209,9 @@ bool lineFollow(int ts, int strictness) {
   Returns true if the robot is back on the line.
 */
 bool turn(int spd, char dir) {
-  int targetIndex = TARGET_INDEX;
   if(dir == LEFT){
     writeToWheels(-spd, spd);
-    targetIndex += 3;
   }else{
-    targetIndex -= 3;
     writeToWheels(spd, -spd);
   }
   // Return true if the robot is back centered on the line
@@ -225,7 +222,7 @@ bool turn(int spd, char dir) {
 
 /*
   Delays for ms number of milliseconds.
-*/ 
+*/
 bool delayState(int ms) {
   static int milliseconds = -1;
   if(milliseconds == -1) {
@@ -239,8 +236,8 @@ bool delayState(int ms) {
 }
 
 /*
-  Switches the wheels backwards and then does a big, swooping turn. 
-*/ 
+  Switches the wheels backwards and then does a big, swooping turn.
+*/
 bool swoopTurn(char dir, int ts, int d) {
   if(dir == LEFT) {
     //lift up arms.
@@ -256,12 +253,12 @@ bool backToCornerState(int ts, int strictness)
 {
   //writeToWheels(ts, ts);
   int lSens, rSens;
-  
-  
+
+
   // Get info from wall sensor and update lSens and rSens
   lSens = readBackLeft();
   rSens = readBackRight();
-  
+
   /*int offset = (lSens - rSens) / strictness;
   //offset = 10;*/
   writeToWheels(-SLOW_SPEED, -SLOW_SPEED);
@@ -269,7 +266,7 @@ bool backToCornerState(int ts, int strictness)
 
   return rSens <= 65; // This is because we don't know what the sensors will return (they aren't always the same)
   // FIXME The return needs to be tested
-  
+
   //return delayState(d);
 }
 
@@ -303,7 +300,7 @@ bool followTrackState() {
   static int state = 0;
   printVar = state;
   bool isFinished = false;
-  
+
   switch(state) {
     case 3:
       rightArm.write(50);
@@ -321,7 +318,7 @@ bool followTrackState() {
       break;
   }
 
-  if(doTurnSequence(TURN_SEQUENCE, state)) 
+  if(doTurnSequence(TURN_SEQUENCE, state))
     state++;
   return isFinished;
 }
@@ -329,38 +326,60 @@ bool followTrackState() {
 bool cornerState(char dir) {
   static int state = 0;
   printVar = state;
-  switch(state) 
+  switch(state)
   {
     case 0:
-      if(swoopTurn(dir, -255, 2150))  state ++; 
+      if(swoopTurn(dir, -255, 2150))  state ++;
       break;
     case 1:
-      if(backToCornerState(100, 10)) { 
+      if(backToCornerState(100, 10)) {
         state++;
-        
+
         //writeWheelDirection(WHEEL_FORWARDS, WHEEL_FORWARDS);
       }
       break;
     case 2:
       writeToWheels(0, 0);
       // Add the drop off
-      leftDump.write(DUMP_POS);//added 90 to initial position
+			if(dir == RIGHT) {
+				leftDump.write(DUMP_POS);//added 90 to initial position
+			} else {
+				rightDump.write(DUMP_POS);
+			}
       if(delayState(2000) && dir == RIGHT) {
-        state++; 
+        state++;
       }
       else if(dir == LEFT) {
         state = 0;
-        return true;
+        return true; // add celebration state????
       }
       break;
-    case 3:
+    case 3: // in this state, we are turning from the wall
       leftDump.write(DONT_DUMP_POS);
-      
-      if(findLine(150)) {
-        state = 0;
-        return true;
+
+      if(turnFromWall(150)) { //TODO: tweak delay value
+        state++;
       }
       break;
+		case 4: // after turning from the wall, in this state we find the line
+			if(findLine(150)) {
+				state++;
+			}
+			break;
+		case 5: // this state gets the robot back into line following
+			/*
+				In this state, we need to straighten ourselves out a bit before we 
+				kick into line following in the next state. So, we are trying to do a 
+				turn here to treat it like a fork. I don't know that this will work. 
+				So, you might need to add a new state that does a gradual turn to the 
+				left for a couple of milliseconds to get it in a suitable line follow 
+				state. 
+			*/
+			if(turn(50, LEFT)) {
+				state = 0;
+				return true;
+			}
+			break;
     default:
       writeToWheels(0, 0);
       break;
@@ -369,33 +388,33 @@ bool cornerState(char dir) {
 }
 
 bool goToNextCornerState() {
-  static int state = 0; 
+  static int state = 0;
   printVar = state;
 
-  if(doTurnSequence(SECOND_TURN_SEQUENCE, state)) 
+  if(doTurnSequence(SECOND_TURN_SEQUENCE, state))
     state++;
 
-  return state == 4 && amountSeen > TURN_AMOUNT;
+  return state == 3 && amountSeen > TURN_AMOUNT;
 }
 
 bool secondCornerState() {
 
   static int state = 0;
   printVar = state;
-  switch(state) 
+  switch(state)
   {
     case 0:
-      if(swoopTurn(LEFT, 255, 2150))  state++; 
+      if(swoopTurn(LEFT, 255, 2150))  state++;
       break;
     case 1:
-      if(backToCornerState(100, 10)) { 
+      if(backToCornerState(100, 10)) {
         state=-1;
         writeWheelDirection(WHEEL_FORWARDS, WHEEL_FORWARDS);
       }
       break;
     case 2:
       writeToWheels(0, 0);
-      if(delayState(2000))  state++; 
+      if(delayState(2000))  state++;
       break;
     case 3:
       if(findLine(150)) {
@@ -405,6 +424,11 @@ bool secondCornerState() {
       break;
   }
   return false;
+}
+
+bool turnFromWall(int d) {
+	writeToWheels(150,0);
+	return delayState(d);
 }
 
 /*
@@ -415,7 +439,7 @@ bool secondCornerState() {
 bool isBallPresent() {
   return colorSensor.getWhite() > BALL_TRIGGER;
   // Talk to testing to figure out what signifies where there's a ball
-  
+
 }
 
 int getPositionFromBall() {
@@ -460,7 +484,7 @@ void testWheel(char wheel, int ts)
     writeToWheels(0, ts);
 }
 int readBackRight(){//gets data val from right infraread sensor IMH
- return analogRead(BACK_RIGHT_SENSOR); 
+ return analogRead(BACK_RIGHT_SENSOR);
 }
 int readBackLeft(){//gets data val from left infraread sensor IMH
   return analogRead(BACK_LEFT_SENSOR);
@@ -473,10 +497,10 @@ void loop() {
   switch(state)
   {
     case 0:
-      if(waitState())  state++; 
+      if(waitState())  state++;
       break;
     case 1:
-      if(followTrackState())  state++; 
+      if(followTrackState())  state++;
       break;
     case 2:
       if(cornerState(RIGHT))  state++;

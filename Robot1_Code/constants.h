@@ -43,7 +43,7 @@ const char TURN_SEQUENCE[] = {
 };
 
 const char SECOND_TURN_SEQUENCE[] = {
-  RIGHT, RIGHT, RIGHT, RIGHT
+  RIGHT, RIGHT, RIGHT
 };
 
 
