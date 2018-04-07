@@ -71,9 +71,9 @@ void setup() {
   //colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO
   //                                 + VEML6040_SD_ENABLE);
   // Talk to testing to get the correct configuration
-  Serial3.begin(115200);
+  //Serial3.begin(115200);
   Serial.begin(115200);
-  Serial3.println("Starting Up...");
+  //Serial3.println("Starting Up...");
   //Wire.begin();
   /*
   if(!colorSensor.begin()) {
@@ -555,10 +555,11 @@ void loop() {
   }
 
   iterations++;
+	/*
   if(iterations == BLUETOOTH_LIMITER)
   {
     iterations = 0;
-    Serial3.print("[ ");
+    //Serial3.print("[ ");
     for(int i = 0; i < 8; i++)
     {
       Serial3.print(sensors[i]);
@@ -570,15 +571,14 @@ void loop() {
     Serial3.println(state);
     Serial3.print("Substate: ");
     Serial3.println(printVar);
-    /*Serial3.println("Backup left: ");
-    Serial3.println(readBackLeft());*/
+    Serial3.println("Backup left: ");
+    Serial3.println(readBackLeft());
     Serial3.println("----------------------------------------");
-    /*Serial3.print("Get Data = ");
+    Serial3.print("Get Data = ");
     Serial3.print(getBallData());
     Serial3.print(" White val: ");
-    Serial3.println(colorSensor.getBlue());*/
+    Serial3.println(colorSensor.getBlue());
 
-    /*
     int b = colorSensor.getBlue();
     int w = colorSensor.getWhite();
     int g = colorSensor.getGreen();
@@ -591,6 +591,6 @@ void loop() {
     Serial3.println(g);
     Serial3.print("White: ");
     Serial3.println(w);
-    */
+		*/
   }
 }
