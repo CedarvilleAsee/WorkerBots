@@ -22,7 +22,7 @@ Servo leftDump;
 Servo rightDump;
 
 // Color Sensor object
-//VEML6040 colorSensor;
+VEML6040 colorSensor;
 
 void setup() {
 
@@ -66,15 +66,38 @@ void setup() {
   writeWheelDirection(WHEEL_FORWARDS, WHEEL_FORWARDS);
   digitalWrite(WHEEL_STBY  , HIGH);
 
-  // Initialize the color sensor
+  // Initialize the color sensor Old
   //colorSensor.setConfiguration(VEML6040_SD_ENABLE);
-  //colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO
-  //                                 + VEML6040_SD_ENABLE);
+  //colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO + VEML6040_SD_ENABLE);
   // Talk to testing to get the correct configuration
   //Serial3.begin(115200);
-  Serial.begin(115200);
+  //Serial.begin(115200);
   //Serial3.println("Starting Up...");
   //Wire.begin();
+
+
+  //New color sensor information
+  Serial.begin(9600);
+  Wire.begin();
+  delay(500);
+  if(!colorSensor.begin()) {
+    Serial.println("ERROR: couldn't detect the sensor");
+    while(1){}
+  }  
+
+  colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO + VEML6040_SD_ENABLE);
+
+  Serial.println("Vishay VEML6040 RGBW color sensor auto mode example");
+  Serial.println("CCT: Correlated color temperature in \260K");
+  Serial.println("AL: Ambient light in lux");
+  Serial.println("-------------------------------------------------------");
+  Serial.println("Default print data is raw data----enter r into terminal");
+  Serial.println("for percent of each color---------enter p into terminal");
+  Serial.println("for percent blue comparison-------enter b into terminal");
+  Serial.println("for red and green comparison------enter c into terminal");
+  Serial.println("-------------------------------------------------------");
+  delay(1500);
+  
   /*
   if(!colorSensor.begin()) {
     digitalWrite(LEDY, HIGH);
@@ -465,20 +488,26 @@ bool turnFromWall(int d) {
 
   The following functions all relate to color sorting.
 
+*/
 bool isBallPresent() {
   return colorSensor.getWhite() > BALL_TRIGGER;
-  // Talk to testing to figure out what signifies where there's a ball
-
 }
+
+//Use get white to determine if the ball is present
+//If the red reading is greater than the green reading, then move one way. If not, move the other way.
 
 int getPositionFromBall() {
-  if(isBallPresent()) {
-    return (colorSensor.getWhite() > ORANGE_BALL) ? ORANGE_POS : WHITE_POS;
-  } else {
-    return NO_BALL;
+  if(colorSensor.getRed() > colorSensor.getGreen()){
+     return ORANGE;
   }
+  else if (colorSensor.getGreen() > colorSensor.getRed()){
+        return WHITE;
+  }
+  else{
+    return 120;
+  }
+
 }
-*/
 
 /*
   Color sorting code:
@@ -488,16 +517,16 @@ int getPositionFromBall() {
 
 bool sort(int color) {
   sorter.write(color);
-  return delayState(250);
+  return delayState(750);
 }
 
 void sortBalls(bool turning) {
   static bool sorting = false;
   if(sorting) {
-    sorting = !sort(ORANGE); // this is the same
+    sorting = !sort(getPositionFromBall()); // this is the same
   } else {
     sorter.write(PICK_UP);
-    sorting = turning; // sorting = isBallPresent();
+    sorting = isBallPresent(); // sorting = turning;
   }
 }
 
@@ -554,6 +583,16 @@ void loop() {
       break;
   }
 
+  // Color data to USB Serial
+  Serial.print("RED: ");
+  Serial.print(colorSensor.getRed());  
+  Serial.print("  GREEN: ");
+  Serial.print(colorSensor.getGreen());  
+  Serial.print("  BLUE: ");
+  Serial.print(colorSensor.getBlue());  
+  Serial.print("  WHITE: ");
+  Serial.print(colorSensor.getWhite());
+  Serial.println();
   iterations++;
 	/*
   if(iterations == BLUETOOTH_LIMITER)

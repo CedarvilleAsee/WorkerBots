@@ -3,9 +3,9 @@
 #define CONSTANTS
 
 //sorter constants
-const int ORANGE = 30;
-const int PICK_UP = 103;
-const int WHITE = 85;
+const int ORANGE = 48;
+const int PICK_UP = 85;
+const int WHITE = 115;
 
 //speed constants
 const int SLOW_SPEED = 70;
@@ -31,7 +31,7 @@ const int BLUE_BALL   = 70;
 const int ORANGE_BALL = 2100;
 const int NO_BALL     = 125;
 
-const int BALL_TRIGGER = 1200;
+const int BALL_TRIGGER = 5000;
 const int BLUE_TRIGGER = 3000;
 
 const int DONT_DUMP_POS = 52;
