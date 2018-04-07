@@ -19,6 +19,7 @@ Servo rightArm;
 Servo leftArm;
 Servo sorter;
 Servo leftDump;
+Servo rightDump;
 
 // Color Sensor object
 //VEML6040 colorSensor;
@@ -55,6 +56,8 @@ void setup() {
   leftArm.write(100);
   leftDump.attach(L_DUMP);
   leftDump.write(DONT_DUMP_POS);//initalize servo at perfect position IMH.
+  rightDump.attach(R_DUMP);
+  rightDump.write(DONT_DUMP_POS);//initalize servo at perfect position IMH.
 
   // Wall Sensors
   //pinMode(L_BARREL_SENSOR, INPUT);
