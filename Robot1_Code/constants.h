@@ -6,6 +6,8 @@
 const int ORANGE = 48;
 const int PICK_UP = 85;
 const int WHITE = 115;
+const int BALL_TRIGGER = 5000;
+const int SORT_TIME = 750;
 
 //speed constants
 const int SLOW_SPEED = 70;
@@ -24,15 +26,6 @@ const bool WHEEL_FORWARDS   = true;
 const bool WHEEL_BACKWARDS  = false;
 const bool FORWARDS         = true;
 const bool BACKWARDS        = false;
-
-const int ORANGE_POS  = 50;
-const int WHITE_POS   = 70;
-const int BLUE_BALL   = 70;
-const int ORANGE_BALL = 2100;
-const int NO_BALL     = 125;
-
-const int BALL_TRIGGER = 5000;
-const int BLUE_TRIGGER = 3000;
 
 const int DONT_DUMP_POS = 52;
 const int DUMP_POS      = 142;

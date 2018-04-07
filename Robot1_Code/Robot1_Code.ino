@@ -66,47 +66,24 @@ void setup() {
   writeWheelDirection(WHEEL_FORWARDS, WHEEL_FORWARDS);
   digitalWrite(WHEEL_STBY  , HIGH);
 
-  // Initialize the color sensor Old
-  //colorSensor.setConfiguration(VEML6040_SD_ENABLE);
-  //colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO + VEML6040_SD_ENABLE);
-  // Talk to testing to get the correct configuration
   //Serial3.begin(115200);
-  //Serial.begin(115200);
   //Serial3.println("Starting Up...");
-  //Wire.begin();
 
-
-  //New color sensor information
+  // initialize color sensor
   Serial.begin(9600);
   Wire.begin();
   delay(500);
-  if(!colorSensor.begin()) {
-    Serial.println("ERROR: couldn't detect the sensor");
-    while(1){}
-  }  
-
-  colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO + VEML6040_SD_ENABLE);
-
-  Serial.println("Vishay VEML6040 RGBW color sensor auto mode example");
-  Serial.println("CCT: Correlated color temperature in \260K");
-  Serial.println("AL: Ambient light in lux");
-  Serial.println("-------------------------------------------------------");
-  Serial.println("Default print data is raw data----enter r into terminal");
-  Serial.println("for percent of each color---------enter p into terminal");
-  Serial.println("for percent blue comparison-------enter b into terminal");
-  Serial.println("for red and green comparison------enter c into terminal");
-  Serial.println("-------------------------------------------------------");
-  delay(1500);
-  
-  /*
+	// MAKE SURE TO CHECK FOR NO YELLOW LED!
   if(!colorSensor.begin()) {
     digitalWrite(LEDY, HIGH);
   }
-  */
+  colorSensor.setConfiguration(VEML6040_IT_320MS + VEML6040_AF_AUTO + VEML6040_SD_ENABLE);
+  delay(1500);
+
 }
 
 /*
-                            MANUEVERING FUNCTIONS:
+                            MANUEVERING:
 
   The following functions relate to maneuvering the robot around the track, and
   resulting states for accomplishing that task.
@@ -358,7 +335,7 @@ bool followTrackState() {
 /*
   HEY ISAIAH!
     This is the big thing you need to work on. Here is where most of the work
-    needs done. 
+    needs done.
 */
 bool cornerState(char dir) {
   static int state = 0;
@@ -391,13 +368,13 @@ bool cornerState(char dir) {
         return true; // add celebration state????
       }
       break;
-    case 3: 
+    case 3:
       /*
-        In this state, we want to swing the robot to the right. It needs to 
-        turn to the right so that we can get it to the straight line beside 
-        the corner. We exit this state after a couple of milliseconds of delay. 
+        In this state, we want to swing the robot to the right. It needs to
+        turn to the right so that we can get it to the straight line beside
+        the corner. We exit this state after a couple of milliseconds of delay.
         Once this state is over, the robot should be pointed towards the line
-        and ready to go onward to the line. 
+        and ready to go onward to the line.
       */
       leftDump.write(DONT_DUMP_POS);
 
@@ -410,12 +387,12 @@ bool cornerState(char dir) {
     case 4: // after turning from the wall, in this state we find the line
       /*
         This state takes the robot to the line and stops when you actually find
-        the line. 
+        the line.
       */
       if(findLine(150)) {
         state++;
         // state = 0;
-        // ^- if you want to test just this state, use state = 0, not state++ 
+        // ^- if you want to test just this state, use state = 0, not state++
       }
       break;
     case 5: // this state gets the robot back into line following
@@ -484,46 +461,36 @@ bool turnFromWall(int d) {
 }
 
 /*
-                               COLOR SORTING CODE:
+                               COLOR SORTING:
 
   The following functions all relate to color sorting.
 
 */
+
 bool isBallPresent() {
   return colorSensor.getWhite() > BALL_TRIGGER;
 }
 
-//Use get white to determine if the ball is present
-//If the red reading is greater than the green reading, then move one way. If not, move the other way.
-
+// If the red reading is greater than the green reading, then move to orange bin.
+// If not, move the other way.
 int getPositionFromBall() {
   if(colorSensor.getRed() > colorSensor.getGreen()){
      return ORANGE;
-  }
-  else if (colorSensor.getGreen() > colorSensor.getRed()){
+  } else {
         return WHITE;
   }
-  else{
-    return 120;
-  }
-
 }
-
-/*
-  Color sorting code:
-    Most of this should work. Just change the sorting in sortBalls so it changes
-    the position conditionally.
-*/
 
 bool sort(int color) {
   sorter.write(color);
-  return delayState(750);
+  return delayState(SORT_TIME);
 }
 
+// We sort only when a ball is present.
 void sortBalls(bool turning) {
   static bool sorting = false;
   if(sorting) {
-    sorting = !sort(getPositionFromBall()); // this is the same
+    sorting = !sort(getPositionFromBall());
   } else {
     sorter.write(PICK_UP);
     sorting = isBallPresent(); // sorting = turning;
@@ -531,7 +498,7 @@ void sortBalls(bool turning) {
 }
 
 /*
-                              TEST FUNCTIONS:
+                              TESTING:
 
   The following functions all relate to testing various parts of the robot.
 
