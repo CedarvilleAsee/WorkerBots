@@ -29,6 +29,7 @@ const int SENSOR_CLK = 87;
 
 // Servos
 const int L_DUMP   = 9;
+const int R_DUMP   = 10;
 const int L_TUBE   = 11;
 const int R_TUBE   = 6;
 //const int SORTER   = 4;
