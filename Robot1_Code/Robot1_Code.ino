@@ -284,6 +284,9 @@ bool waitState() {
   return (digitalRead(BUTTON1) == LOW);
 }
 
+/*
+  Proven to work by cases.
+*/
 bool doTurnSequence(const char sequence[], int index) {
   static bool turning = false;
   sortBalls(turning);
@@ -299,6 +302,9 @@ bool doTurnSequence(const char sequence[], int index) {
   return false;
 }
 
+/*
+  Inductively proven to work.
+*/
 bool followTrackState() {
   static int state = 0;
   printVar = state;
@@ -326,6 +332,11 @@ bool followTrackState() {
   return isFinished;
 }
 
+/*
+  HEY ISAIAH!
+    This is the big thing you need to work on. Here is where most of the work
+    needs done. 
+*/
 bool cornerState(char dir) {
   static int state = 0;
   printVar = state;
@@ -357,32 +368,47 @@ bool cornerState(char dir) {
         return true; // add celebration state????
       }
       break;
-    case 3: // in this state, we are turning from the wall
+    case 3: 
+      /*
+        In this state, we want to swing the robot to the right. It needs to 
+        turn to the right so that we can get it to the straight line beside 
+        the corner. We exit this state after a couple of milliseconds of delay. 
+        Once this state is over, the robot should be pointed towards the line
+        and ready to go onward to the line. 
+      */
       leftDump.write(DONT_DUMP_POS);
 
       if(turnFromWall(150)) { //TODO: tweak delay value
         state++;
+        // state = 0;
+        // ^- if you want to test just this state, use state = 0, not state++
       }
       break;
-		case 4: // after turning from the wall, in this state we find the line
-			if(findLine(150)) {
-				state++;
-			}
-			break;
-		case 5: // this state gets the robot back into line following
-			/*
-				In this state, we need to straighten ourselves out a bit before we 
-				kick into line following in the next state. So, we are trying to do a 
-				turn here to treat it like a fork. I don't know that this will work. 
-				So, you might need to add a new state that does a gradual turn to the 
-				left for a couple of milliseconds to get it in a suitable line follow 
-				state. 
-			*/
-			if(turn(50, LEFT)) {
-				state = 0;
-				return true;
-			}
-			break;
+    case 4: // after turning from the wall, in this state we find the line
+      /*
+        This state takes the robot to the line and stops when you actually find
+        the line. 
+      */
+      if(findLine(150)) {
+        state++;
+        // state = 0;
+        // ^- if you want to test just this state, use state = 0, not state++ 
+      }
+      break;
+    case 5: // this state gets the robot back into line following
+      /*
+        In this state, we need to straighten ourselves out a bit before we 
+        kick into line following in the next state. So, we are trying to do a 
+        turn here to treat it like a fork. I don't know that this will work. 
+        So, you might need to add a new state that does a gradual turn to the 
+        left for a couple of milliseconds to get it in a suitable line follow 
+        state. 
+      */
+      if(turn(50, LEFT)) {
+        state = 0;
+        return true;
+      }
+      break;
     default:
       writeToWheels(0, 0);
       break;
@@ -452,6 +478,12 @@ int getPositionFromBall() {
     return NO_BALL;
   }
 }
+*/
+
+/*
+  Color sorting code:
+    Most of this should work. Just change the sorting in sortBalls so it changes
+    the position conditionally.
 */
 
 bool sort(int color) {
