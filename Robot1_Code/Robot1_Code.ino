@@ -591,6 +591,6 @@ void loop() {
     Serial3.println(g);
     Serial3.print("White: ");
     Serial3.println(w);
-		*/
   }
+	*/
 }
