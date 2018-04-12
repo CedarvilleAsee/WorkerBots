@@ -51,13 +51,21 @@ void setup() {
   pinMode(L_DUMP,INPUT);
 
   leftArm.attach(L_TUBE);
+	rightArm.attach(R_TUBE);
+
   sorter.attach(SORTER);
   sorter.write(PICK_UP);
-  leftArm.write(100);
+
+	// arms should be written to x_ARM_UP, and then put down when we actually
+	// start
+  leftArm.write(L_ARM_UP);
+	rightArm.write(R_ARM_UP);
+
   leftDump.attach(L_DUMP);
-  leftDump.write(DONT_DUMP_POS);//initalize servo at perfect position IMH.
+  leftDump.write(L_DONT_DUMP);//initalize servo at perfect position IMH.
+
   rightDump.attach(R_DUMP);
-  rightDump.write(DONT_DUMP_POS);//initalize servo at perfect position IMH.
+  rightDump.write(R_DONT_DUMP);//initalize servo at perfect position IMH.
 
   // Wall Sensors
   //pinMode(L_BARREL_SENSOR, INPUT);
@@ -66,11 +74,11 @@ void setup() {
   writeWheelDirection(WHEEL_FORWARDS, WHEEL_FORWARDS);
   digitalWrite(WHEEL_STBY  , HIGH);
 
-  //Serial3.begin(115200);
-  //Serial3.println("Starting Up...");
+  Serial3.begin(115200);
+  Serial3.println("Starting Up...");
 
   // initialize color sensor
-  Serial.begin(9600);
+  //Serial.begin(9600);
   Wire.begin();
   delay(500);
 	// MAKE SURE TO CHECK FOR NO YELLOW LED!
@@ -312,18 +320,18 @@ bool followTrackState() {
 
   switch(state) {
     case 3:
-      rightArm.write(50);
+      rightArm.write(R_ARM_HALF);
       break;
     case 9:
     case 10:
-      leftArm.write(145);
+      leftArm.write(L_ARM_HALF);
       break;
     case 14:
       isFinished = amountSeen > TURN_AMOUNT;
       break;
     default:
-      rightArm.write(100);
-      leftArm.write(100);
+      rightArm.write(R_ARM_DOWN);
+      leftArm.write(L_ARM_DOWN);
       break;
   }
 
@@ -356,9 +364,9 @@ bool cornerState(char dir) {
       writeToWheels(0, 0);
       // Add the drop off
 			if(dir == RIGHT) {
-				leftDump.write(DUMP_POS);//added 90 to initial position
+				leftDump.write(L_DO_DUMP);//added 90 to initial position
 			} else {
-				rightDump.write(DUMP_POS);
+				rightDump.write(R_DO_DUMP);
 			}
       if(delayState(2000) && dir == RIGHT) {
         state++;
@@ -376,7 +384,7 @@ bool cornerState(char dir) {
         Once this state is over, the robot should be pointed towards the line
         and ready to go onward to the line.
       */
-      leftDump.write(DONT_DUMP_POS);
+      leftDump.write(L_DONT_DUMP);
 
       if(turnFromWall(150)) { //TODO: tweak delay value
         state++;
@@ -488,13 +496,26 @@ bool sort(int color) {
 
 // We sort only when a ball is present.
 void sortBalls(bool turning) {
-  static bool sorting = false;
-  if(sorting) {
-    sorting = !sort(getPositionFromBall());
-  } else {
-    sorter.write(PICK_UP);
-    sorting = isBallPresent(); // sorting = turning;
-  }
+	static bool sorting = false;
+	static int wiggleWiggleWiggle = 30;
+	static unsigned int currentTime = -1;
+	if(sorting) {
+		sorting = !sort(getPositionFromBall());
+	} else {
+
+		// this code makes the sorter servo vibrate to get better results
+		if(currentTime == -1) {
+			currentTime = millis();
+		}
+		if( (millis() - currentTime ) > 700) {
+			sorter.write(PICK_UP + wiggleWiggleWiggle);
+			wiggleWiggleWiggle = -wiggleWiggleWiggle;
+			currentTime = -1;
+		} else {
+			sorter.write(PICK_UP);
+		}
+		sorting = isBallPresent(); // sorting = turning;
+	}
 }
 
 /*
@@ -550,6 +571,7 @@ void loop() {
       break;
   }
 
+	/*
   // Color data to USB Serial
   Serial.print("RED: ");
   Serial.print(colorSensor.getRed());  
@@ -561,6 +583,7 @@ void loop() {
   Serial.print(colorSensor.getWhite());
   Serial.println();
   iterations++;
+	*/
 	/*
   if(iterations == BLUETOOTH_LIMITER)
   {
