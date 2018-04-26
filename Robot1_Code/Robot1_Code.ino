@@ -13,6 +13,8 @@ int amountSeen     = 0;
 int printVar = 0;
 bool otherPrintVar = false; // Consider making "printVar" an array
 
+bool turning = false;
+
 Servo rightArm;
 Servo leftArm;
 Servo sorter;
@@ -215,19 +217,6 @@ bool lineFollow(int ts, int strictness) {
   return amountSeen > TURN_AMOUNT;
 }
 
-bool funnelState(int ts, int strictness) {
-  if(firstLineIndex == -1 && lastLineIndex == -1) {
-    writeToWheels(HALF_SPEED, HALF_SPEED);
-  } else {
-    if(firstLineIndex <= TARGET_INDEX) {
-      writeToWheels(HALF_SPEED, HALF_SPEED - (strictness * firstLineIndex));
-    } else {
-      writeToWheels(HALF_SPEED - (strictness * (8 - firstLineIndex)), HALF_SPEED);
-    }
-  }
-
-  return amountSeen > TURN_AMOUNT;
-}
 
 /*
    Turns based on direction. Use the constants LEFT and RIGHT for this function.
@@ -273,7 +262,7 @@ bool swoopTurn(char dir, int ts, int d) {
     //lift up arms.
     writeToWheels((0 - ts) % 5, ts);
   } else {
-    writeToWheels(ts, (0 - ts) % 20);
+    writeToWheels(ts, (0 - ts) % 5);
   }
 
   return delayState(d);
@@ -289,6 +278,18 @@ bool backToCornerState(int ts, int strictness)
   lSens = readBackLeft();
   rSens = readBackRight();
 
+  // Low bound: 30
+  // Upper bound: 255
+  int leftSpeed = map(lSens, 50, 950, 0, 150);
+  int rightSpeed = map (rSens, 50, 950, 0, 150);
+  leftSpeed += 100;
+  rightSpeed += 100;
+  leftSpeed = constrain(leftSpeed, 100, 255);
+  rightSpeed = constrain(rightSpeed, 100, 255);
+
+  writeToWheels(-leftSpeed, -rightSpeed);
+
+  /*
   if(lSens < 900 && rSens < 900) {
     offset = (lSens - rSens) / strictness;
 
@@ -301,10 +302,9 @@ bool backToCornerState(int ts, int strictness)
   }
 
   writeToWheels(-(ts + offset), -(ts - offset));
-  return rSens <= 60 && lSens <= 60; // This is because we don't know what the sensors will return (they aren't always the same)
-  // FIXME The return needs to be tested
+  */
 
-  //return delayState(d);
+  return rSens <= 60 && lSens <= 60; // This is because we don't know what the sensors will return (they aren't always the same)
 }
 
 bool findLine(int ts)
@@ -343,7 +343,6 @@ bool doTurnSequence(const char sequence[], int index, bool left, bool right) {
 }
 
 bool doTurnSequence(const char sequence[], int index) {
-  static bool turning = false;
   if(turning) {
     if(turn(HALF_SPEED, sequence[index])) {
       turning = false;
@@ -354,8 +353,6 @@ bool doTurnSequence(const char sequence[], int index) {
   }
   return false;
 }
-
-
 
 /*
    Inductively proven to work.
@@ -383,7 +380,7 @@ bool followTrackState() {
     case 12:
       leftArm.write(L_ARM_HALF);
       break;
-    case 16:
+    case 16: // Old: 16
       isFinished = amountSeen > TURN_AMOUNT;
       break;
     default:
@@ -398,9 +395,56 @@ bool followTrackState() {
     }
   }   
 
-  sortBalls();
+  if(isFinished) {
+    turning = false;
+  }
 
   return isFinished;
+}
+
+bool pullForward() {
+  writeToWheels(HALF_SPEED, HALF_SPEED);
+  return amountSeen > 0;
+}
+
+bool rightPivot() {
+  writeToWheels(HALF_SPEED, 0);
+  return amountSeen == 0;
+}
+
+bool finishPivot() {
+  writeToWheels(HALF_SPEED, 0);
+  return twoConsecutive();
+}
+
+bool straightCorrect() {
+  writeToWheels(HALF_SPEED, HALF_SPEED);
+  return delayState(250);
+}
+
+void wiggleBin(char dir) {
+  static bool left = true;
+  static int  wiggleTime = millis();
+  const int STEP = 15;
+
+  if(dir == LEFT) {
+    if(left) {
+      rightDump.write(R_DO_DUMP - STEP);
+    } else {
+      rightDump.write(R_DO_DUMP + STEP);
+    }
+  } else {
+    if(left) {
+      leftDump.write(L_DO_DUMP - STEP);
+    } else {
+      leftDump.write(L_DO_DUMP + STEP);
+    }
+  }
+
+  if(millis() - wiggleTime > 150) {
+    wiggleTime = millis();
+    left = !left;
+  }
 }
 
 /*
@@ -416,35 +460,31 @@ bool cornerState(char dir) {
     case 0:
       leftArm.write(L_ARM_HALF);
       rightArm.write(R_ARM_HALF);
-      if(swoopTurn(dir, -255, 2250))  state ++;
+      if(swoopTurn(dir, -255, 2250))  state++;
       break;
     case 1:
       if(backToCornerState(SLOW_SPEED, 20)) {
         state++;
-
         //writeWheelDirection(WHEEL_FORWARDS, WHEEL_FORWARDS);
       }
       break;
-    case 2:
+    case 2: 
       writeToWheels(0, 0);
-      // Add the drop off
-      if(dir == RIGHT) {
-        leftDump.write(L_DO_DUMP);//added 90 to initial position
-      } else {
-        rightDump.write(R_DO_DUMP);
-      }
+      // If it's time to move left
+      wiggleBin(dir);
+
       if(delayState(2000) && dir == RIGHT) {
         state++;
-      }
-      else if(dir == LEFT) {
+      } else if(dir == LEFT) {
         state = 0;
         return true; // add celebration state????
       }
-      break;
+      break; 
     case 3:
-      if(turnFromCorner(530)) {
-        state++;
-      }
+      rightDump.write(R_DONT_DUMP);
+      leftDump.write(L_DONT_DUMP);
+
+      if(pullForward()) { state++; }
       break;
     case 4:
       /*
@@ -454,22 +494,14 @@ bool cornerState(char dir) {
          Once this state is over, the robot should be pointed towards the line
          and ready to go onward to the line.
        */
-      if(dir == LEFT) {
-        rightDump.write(R_DONT_DUMP);
-      } else {
-        leftDump.write(L_DONT_DUMP);
-      }
-
-      if(funnelState(HALF_SPEED, 40)) { //TODO: tweak delay value
-        state++;
-        // state = 0;
-        // ^- if you want to test just this state, use state = 0, not state++
-      }
+      if(rightPivot()) { state++; }
       break;
-    case 5: // In this state, we work to make it past the fork so we're ready
+    case 5:
+      if(finishPivot()) { state++; }
+      break;
+    case 6: // In this state, we work to make it past the fork so we're ready
             // to do the turn sequence
-      writeToWheels(HALF_SPEED, HALF_SPEED);
-      if(twoConsecutive()) {
+      if(straightCorrect()) {
         state = 0;
         return true;
       }
@@ -482,13 +514,16 @@ bool cornerState(char dir) {
 }
 
 bool goToNextCornerState() {
-  static int state = 0;
-  printVar = state;
+  static int subState = 0;
+  printVar = subState;
 
-  if(doTurnSequence(SECOND_TURN_SEQUENCE, state))
-    state++;
+  if(doTurnSequence(SECOND_TURN_SEQUENCE, subState)) {
+    Serial3.print("   INCREMENTING STATE -> ");
+    Serial3.println(millis());
+    subState++; 
+  }
 
-  return state == 2 && amountSeen > TURN_AMOUNT;
+  return subState == 2 && amountSeen > TURN_AMOUNT;
 }
 
 bool secondCornerState() {
@@ -525,6 +560,25 @@ bool turnFromCorner(int d) {
   return delayState(d);
 }
 
+bool pullFromWallState() {
+  static int state = 0;
+  switch(state) {
+    case 0:
+      wiggleBin(LEFT);
+      if(delayState(2000)) state++;
+      break;
+    case 1:
+      writeToWheels(HALF_SPEED, HALF_SPEED);
+      if(delayState(1000)) {
+        state = 0;
+        return true;
+      }
+      break;
+  }
+
+  return false;
+}
+
 /*
    COLOR SORTING:
 
@@ -551,6 +605,21 @@ bool sort(int color) {
   return delayState(SORT_TIME);
 }
 
+void wiggleServo(Servo& s, int pos) {
+  static bool leftWiggle = true;
+  static int  wiggleStart = millis();
+  const  int  WIGGLE = 12;
+  if(leftWiggle) {
+    s.write(pos + WIGGLE);
+  } else {
+    s.write(pos - WIGGLE);
+  }
+
+  if(millis() - wiggleStart >= 150) {
+    leftWiggle = !leftWiggle;
+  }
+}
+
 // We sort only when a ball is present.
 void sortBalls() {
   static bool sorting = false;
@@ -560,7 +629,6 @@ void sortBalls() {
   if(sorting) {
     sorting = !sort(getPositionFromBall());
   } else {
-
     // If it's time to move left
     if(leftWiggle) {
       // move left
@@ -606,8 +674,11 @@ int readBackLeft(){//gets data val from left infraread sensor IMH
 
 void loop() {
   static int state = 0;
+  static int oldState = 0;
+  static int oldPrintVar = 0;
   static int sorterTester = 0;
   readLine();
+  sortBalls();
   switch(state)
   {
     case 0:
@@ -623,20 +694,25 @@ void loop() {
       if(goToNextCornerState()) state++;
       break;
     case 4:
-      if(cornerState(LEFT)) state = 0;
+      if(cornerState(LEFT)) state++;
+      break;
+    case 5:
+      if(pullFromWallState()) state = 0;
     default:
-      backToCornerState(SLOW_SPEED, 5);
+      //writeToWheels(250, -250);
       break;
   }
 
-  static int serialLimiter = millis();
-  if(millis() - serialLimiter >= 1000) {
-    Serial.print("Right Sensor: ");
-    Serial.println(readBackRight());
-    Serial.print("Left Sensor: ");
-    Serial.println(readBackLeft());
-    Serial.println("---------------------------");
-    serialLimiter = millis();
+  //static int serialLimiter = millis();
+  if(oldState != state || oldPrintVar != printVar) {
+    oldState = state;
+    oldPrintVar = printVar;
+    Serial3.print("State: ");
+    Serial3.print(state);
+    Serial3.print("   SubState: ");
+    Serial3.print(printVar);
+    Serial3.print("   Time: ");
+    Serial3.println(millis());
   }
 
 }

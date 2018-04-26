@@ -3,9 +3,9 @@
 #define CONSTANTS
 
 //sorter constants
-const int ORANGE = 48;
+const int ORANGE = 115;
 const int PICK_UP = 85;
-const int WHITE = 115;
+const int WHITE = 48; 
 const int BALL_TRIGGER = 5000;
 const int SORT_TIME = 50;
 
@@ -49,6 +49,8 @@ const char TURN_SEQUENCE[] = {
 const char SECOND_TURN_SEQUENCE[] = {
   RIGHT, RIGHT
 };
+
+const char TEST_SEQUENCE[] = { RIGHT, LEFT, LEFT };
 
 
 #endif
