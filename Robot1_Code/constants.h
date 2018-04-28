@@ -4,8 +4,8 @@
 
 //sorter constants
 const int ORANGE = 115;
-const int PICK_UP = 85;
-const int WHITE = 48; 
+const int PICK_UP = 86;
+const int WHITE = 57;
 const int BALL_TRIGGER = 5000;
 const int SORT_TIME = 50;
 

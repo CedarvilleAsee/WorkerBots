@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Servo.h>
+#include "Nextion_Due.h"
 #include "Wire.h"
 #include "new_pins.h"
 #include "constants.h"
@@ -23,6 +24,8 @@ Servo rightDump;
 
 // Color Sensor object
 VEML6040 colorSensor;
+
+Nextion myNextion;
 
 void setup() {
 
@@ -67,14 +70,13 @@ void setup() {
   rightDump.attach(R_DUMP);
   rightDump.write(R_DONT_DUMP);//initalize servo at perfect position IMH.
 
-  // Wall Sensors
-  //pinMode(L_BARREL_SENSOR, INPUT);
-  //pinMode(BACK_SENSOR, INPUT);
-
   writeWheelDirection(WHEEL_FORWARDS, WHEEL_FORWARDS);
   digitalWrite(WHEEL_STBY  , HIGH);
 
   Serial.begin(9600);
+
+  myNextion = Nextion(nexSerial, 9600);
+
   Serial3.begin(115200);
   Serial3.println("Starting Up...");
 
@@ -92,7 +94,7 @@ void setup() {
 }
 
 /*
-MANUEVERING:
+  MANUEVERING:
 
 The following functions relate to maneuvering the robot around the track, and
 resulting states for accomplishing that task.
@@ -315,6 +317,27 @@ bool findLine(int ts)
 
 bool waitState() {
   writeToWheels(0, 0);
+  
+  // Write the line sensor data
+  for(int i = 0; i < 8; i++) {
+    myNextion.setComponentValue("c" + String(i), sensors[i]);
+  }
+
+  // Display the rear sensors
+  myNextion.setComponentValue("leftNum", readBackLeft());
+  myNextion.setComponentValue("rightNum", readBackRight());
+
+  // Display the color data
+  myNextion.setComponentValue("redVal", colorSensor.getRed());
+  myNextion.setComponentValue("blueVal", colorSensor.getBlue());
+  myNextion.setComponentValue("greenVal", colorSensor.getGreen());
+
+  if(getPositionFromBall() == ORANGE) {
+    myNextion.setComponentText("color", "Orange");
+  } else {
+    myNextion.setComponentText("color", "White");
+  }
+
   return (digitalRead(BUTTON1) == LOW);
 }
 
@@ -424,7 +447,7 @@ bool straightCorrect() {
 
 void wiggleBin(char dir) {
   static bool left = true;
-  static int  wiggleTime = millis();
+  static unsigned long wiggleTime = millis();
   const int STEP = 15;
 
   if(dir == LEFT) {
@@ -460,7 +483,7 @@ bool cornerState(char dir) {
     case 0:
       leftArm.write(L_ARM_HALF);
       rightArm.write(R_ARM_HALF);
-      if(swoopTurn(dir, -255, 2250))  state++;
+      if(swoopTurn(dir, -255, 2175))  state++;
       break;
     case 1:
       if(backToCornerState(SLOW_SPEED, 20)) {
@@ -471,14 +494,18 @@ bool cornerState(char dir) {
     case 2: 
       writeToWheels(0, 0);
       // If it's time to move left
-      wiggleBin(dir);
+      if(dir == RIGHT) {
+        wiggleServo(leftDump, L_DO_DUMP, 15, 150);
+      } 
 
-      if(delayState(2000) && dir == RIGHT) {
-        state++;
-      } else if(dir == LEFT) {
+      //wiggleBin(dir);
+
+      if(dir == LEFT) {
         state = 0;
         return true; // add celebration state????
-      }
+      } else if(delayState(2500) && dir == RIGHT) {
+        state++;
+      }       
       break; 
     case 3:
       rightDump.write(R_DONT_DUMP);
@@ -526,35 +553,6 @@ bool goToNextCornerState() {
   return subState == 2 && amountSeen > TURN_AMOUNT;
 }
 
-bool secondCornerState() {
-
-  static int state = 0;
-  printVar = state;
-  switch(state)
-  {
-    case 0:
-      if(swoopTurn(LEFT, 255, 2150))  state++;
-      break;
-    case 1:
-      if(backToCornerState(100, 10)) {
-        state=-1;
-        writeWheelDirection(WHEEL_FORWARDS, WHEEL_FORWARDS);
-      }
-      break;
-    case 2:
-      writeToWheels(0, 0);
-      if(delayState(2000))  state++;
-      break;
-    case 3:
-      if(findLine(150)) {
-        state = 0;
-        return true;
-      }
-      break;
-  }
-  return false;
-}
-
 bool turnFromCorner(int d) {
   writeToWheels(150,0);
   return delayState(d);
@@ -562,13 +560,16 @@ bool turnFromCorner(int d) {
 
 bool pullFromWallState() {
   static int state = 0;
+  printVar = state;
   switch(state) {
     case 0:
-      wiggleBin(LEFT);
+      wiggleServo(rightDump, R_DO_DUMP, 15, 150);
+      //wiggleBin(LEFT);
       if(delayState(2000)) state++;
       break;
     case 1:
       writeToWheels(HALF_SPEED, HALF_SPEED);
+      rightDump.write(R_DONT_DUMP);
       if(delayState(1000)) {
         state = 0;
         return true;
@@ -605,31 +606,31 @@ bool sort(int color) {
   return delayState(SORT_TIME);
 }
 
-void wiggleServo(Servo& s, int pos) {
+void wiggleServo(Servo& s, int pos, int step, int d) {
   static bool leftWiggle = true;
-  static int  wiggleStart = millis();
-  const  int  WIGGLE = 12;
+  static unsigned long wiggleStart = millis();
   if(leftWiggle) {
-    s.write(pos + WIGGLE);
+    s.write(pos + step);
   } else {
-    s.write(pos - WIGGLE);
+    s.write(pos - step);
   }
 
-  if(millis() - wiggleStart >= 150) {
+  if(millis() - wiggleStart >= d) {
     leftWiggle = !leftWiggle;
+    wiggleStart = millis();
   }
 }
 
 // We sort only when a ball is present.
 void sortBalls() {
   static bool sorting = false;
-  static bool leftWiggle = true;
-  static int  wiggleStart = millis();
-  const  int  WIGGLE = 6;
+  //static bool leftWiggle = true;
+  //static unsigned long  wiggleStart = millis();
+  //const int  WIGGLE = 6;
   if(sorting) {
     sorting = !sort(getPositionFromBall());
   } else {
-    // If it's time to move left
+    /* If it's time to move left
     if(leftWiggle) {
       // move left
       sorter.write(PICK_UP + WIGGLE);
@@ -643,6 +644,8 @@ void sortBalls() {
       leftWiggle = !leftWiggle;
       wiggleStart = millis();
     }
+    */
+    wiggleServo(sorter, PICK_UP, 2, 200);
 
     sorting = isBallPresent(); // sorting = turning;
   }
@@ -698,8 +701,8 @@ void loop() {
       break;
     case 5:
       if(pullFromWallState()) state = 0;
+      break;
     default:
-      //writeToWheels(250, -250);
       break;
   }
 
