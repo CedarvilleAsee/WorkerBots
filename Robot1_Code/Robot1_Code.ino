@@ -596,6 +596,12 @@ int getPositionFromBall() {
   }
 }
 
+// TODO: You might be able to lower or eliminate this delay
+/*
+  Note that when you see a ball when the sorter arm is in sorted position, you will immediately
+  switch back into the same sorting state. So, this delay appears to be the number of milliseconds
+  the robot waits AFTER the ball has dropped out of view of the sensor. 
+*/
 bool sort(int color) {
   sorter.write(color);
   return delayState(SORT_TIME);
