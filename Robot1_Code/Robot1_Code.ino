@@ -558,7 +558,7 @@ bool pullFromWallState() {
   printVar = state;
   switch(state) {
     case 0:
-      if(wiggleServo(rightDump, R_DO_DUMP, R_DONT_DUMP, 750, 6)) state++;
+      if(wiggleServo(rightDump, R_DO_DUMP, R_DONT_DUMP, 750, 8)) state++;
       break;
     case 1:
       writeToWheels(HALF_SPEED, HALF_SPEED);
