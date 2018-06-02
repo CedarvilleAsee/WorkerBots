@@ -326,6 +326,7 @@ bool waitState() {
   // Display the rear sensors
   myNextion.setComponentValue("leftNum", readBackLeft());
   myNextion.setComponentValue("rightNum", readBackRight());
+  myNextion.setComponentValue("state", printVar);
 
   // Display the color data
   myNextion.setComponentValue("redVal", colorSensor.getRed());
@@ -493,17 +494,13 @@ bool cornerState(char dir) {
       break;
     case 2: 
       writeToWheels(0, 0);
-      // If it's time to move left
-      if(dir == RIGHT) {
-        wiggleServo(leftDump, L_DO_DUMP, 15, 150);
-      } 
 
       //wiggleBin(dir);
 
       if(dir == LEFT) {
         state = 0;
         return true; // add celebration state????
-      } else if(delayState(2500) && dir == RIGHT) {
+      } else if(wiggleServo(leftDump, L_DO_DUMP, L_DONT_DUMP, 750, 8)){
         state++;
       }       
       break; 
@@ -545,9 +542,7 @@ bool goToNextCornerState() {
   printVar = subState;
 
   if(doTurnSequence(SECOND_TURN_SEQUENCE, subState)) {
-    Serial3.print("   INCREMENTING STATE -> ");
-    Serial3.println(millis());
-    subState++; 
+    subState++;
   }
 
   return subState == 2 && amountSeen > TURN_AMOUNT;
@@ -563,9 +558,7 @@ bool pullFromWallState() {
   printVar = state;
   switch(state) {
     case 0:
-      wiggleServo(rightDump, R_DO_DUMP, 15, 150);
-      //wiggleBin(LEFT);
-      if(delayState(2000)) state++;
+      if(wiggleServo(rightDump, R_DO_DUMP, R_DONT_DUMP, 750, 6)) state++;
       break;
     case 1:
       writeToWheels(HALF_SPEED, HALF_SPEED);
@@ -606,19 +599,28 @@ bool sort(int color) {
   return delayState(SORT_TIME);
 }
 
-void wiggleServo(Servo& s, int pos, int step, int d) {
+bool wiggleServo(Servo& s, int firstPos, int secondPos, int d, int maxSteps) {
   static bool leftWiggle = true;
   static unsigned long wiggleStart = millis();
+  static int steps = 0;
   if(leftWiggle) {
-    s.write(pos + step);
+    s.write(firstPos);
   } else {
-    s.write(pos - step);
+    s.write(secondPos);
   }
 
   if(millis() - wiggleStart >= d) {
-    leftWiggle = !leftWiggle;
+    steps++;
     wiggleStart = millis();
+    leftWiggle = !leftWiggle;
+    if(steps == maxSteps) {
+      steps = 0;
+      return true;
+    }
+    return false;
   }
+
+  return false;
 }
 
 // We sort only when a ball is present.
@@ -645,7 +647,8 @@ void sortBalls() {
       wiggleStart = millis();
     }
     */
-    wiggleServo(sorter, PICK_UP, 2, 200);
+    //wiggleServo(sorter, PICK_UP, 2, 200);
+    sorter.write(PICK_UP);
 
     sorting = isBallPresent(); // sorting = turning;
   }
@@ -703,6 +706,7 @@ void loop() {
       if(pullFromWallState()) state = 0;
       break;
     default:
+      rightArm.write(R_ARM_UP);
       break;
   }
 
