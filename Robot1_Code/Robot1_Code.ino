@@ -121,6 +121,7 @@ void readLine() {
   }
 }
 
+// TODO: get rid of this function
 bool twoConsecutiveAtMiddle() {
   return twoConsecutive() && firstLineIndex >= TARGET_INDEX;
 }
@@ -236,6 +237,7 @@ bool turn(int spd, char dir) {
   //return firstLineIndex >= targetIndex  && amountSeen < 3;
 }
 
+// TODO: remove this function
 bool correctJank(int spd, int strictness) {
   writeToWheels(spd - strictness, spd);
   return twoConsecutiveAtMiddle();
