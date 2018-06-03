@@ -264,9 +264,11 @@ bool delayState(int ms) {
 bool swoopTurn(char dir, int ts, int d) {
   if(dir == LEFT) {
     //lift up arms.
-    writeToWheels((0 - ts) % 5, ts);
+    //writeToWheels(0, ts);
+    writeToWheels(5, ts);
   } else {
-    writeToWheels(ts, (0 - ts) % 5);
+    //writeToWheels(ts, 0);
+    writeToWheels(ts, 5);
   }
 
   return delayState(d);
