@@ -27,9 +27,9 @@ const bool WHEEL_BACKWARDS  = false;
 const bool FORWARDS         = true;
 const bool BACKWARDS        = false;
 
-const int R_DONT_DUMP = 100;
+const int R_DONT_DUMP = 110;
 const int L_DONT_DUMP = 32;
-const int R_DO_DUMP = 20;
+const int R_DO_DUMP = 30;
 const int L_DO_DUMP = 95;
 
 // arm constants
